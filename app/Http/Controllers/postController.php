@@ -4,17 +4,18 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Post;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 class postController extends Controller
 {
     //
     public function index(Request $request){
         $posts = Post::all();
-        // dump(Auth::user()->id);
-        // dd($posts);
-        // $user = $posts->user->firstName;
-        // dd($posts);
-        return view('posts.index',compact('posts'));
+        return response()->json([
+            'success' => true,
+            'data'    => $posts
+        ], 200);
     }
 
 
@@ -27,17 +28,83 @@ class postController extends Controller
             $post->content = $request->content;
             $post->createdBy = Auth::user()->id;
             $post->save();
-            return redirect()->route('posts.index')->with('success', 'Post created successfully');
+            return response()->json([
+                'success' => true,
+                "message" => "Post created successfully",
+                'data'  => $post
+            ], 200);
+            // return redirect()->route('posts.index')->with('success', 'Post created successfully');
         }
-        return redirect("login")->withSuccess('You are not allowed to access');
+        return response()->json([
+            'success' => false,
+            "message" => "Please Login first to create post",
+        ], 400);
     }
 
 
+    // update post 
+
+    public function update(Request $request , Post $post){
+
+        $input = $request->all();
+        // dd($input);
+        $validator = Validator::make($input , [
+            'content' => 'required',
+        ]);
+   
+        if($validator->fails()){
+           
+            return response()->json([
+                'success' => false,
+                "message" =>  $validator->errors(),
+            ], 400);       
+        }
+        // dump($post);
+        // dd(Auth::id());
+        if($post->createdBy != Auth::id()){
+            return response()->json([
+                'success' => false,
+                "message" =>  "Please provide correct id",
+            ], 400);
+        }
+        $post->content = $input['content'];
+        $post->save();
+   
+        return response()->json([
+            'success' => true,
+            "message" => "updated Successfully",
+            'data'    => $post
+        ], 200);
+
+    }
+
+
+    public function deletePost(Request $request , Post $post){
+        if($post->createdBy != Auth::id()){
+            return response()->json([
+                'success' => false,
+                "message" =>  "Please provide correct id",
+            ], 400);
+        }
+
+        $post->delete();
+        return response()->json([
+            'success' => true,
+            "message" =>  "deleted successfully",
+        ], 400);
+    }
 
     public function myPosts(Request $request){
+        // dd("shshid");
         $id = Auth::user()->id;
-        $posts = Post::where('createdBy', '=', $id)->get();  
-        dd($posts);
+        // $posts = Post::where('createdBy', '=', $id)->get();
+        // or 
+        $posts = User::find($id)->posts;
+       
+        return response()->json([
+            'success' => true,
+            "data" => $posts,
+        ], 200);
     }
 
 }

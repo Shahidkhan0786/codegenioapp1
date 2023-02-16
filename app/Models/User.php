@@ -47,8 +47,13 @@ class User extends Authenticatable
 
     public function posts(): HasMany
     {
-        return $this->hasMany(Post::class);
+        return $this->hasMany(Post::class ,'createdBy');
     }
+
+    public function comments(): HasMany
+    {
+        return $this->hasMany(Comment::class ,'createdBy');
+    } 
 
     
 }

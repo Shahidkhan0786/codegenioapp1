@@ -4,16 +4,20 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
-
-
+// use Validator;
+use Illuminate\Support\Facades\Validator;
 class userController extends Controller
 {
     //
     public function index(){
-        $users = User::latest()->paginate(5);
-        // dd($users);
-        return view('user.index',compact('users'))
-            ->with('i', (request()->input('page', 1) - 1) * 5);
+        $users = User::latest()->get();
+        
+        // for apis 
+        $response = [
+            'success' => true,
+            'data'    => $users
+        ];
+        return response()->json($response, 200);
     }
 
     public function store(Request $request){
@@ -25,19 +29,34 @@ class userController extends Controller
             'password' => 'required',
             'userType' => 'required',
         ]);
+        try{
+            $users = User::create($request->all());
+        }
+        catch(\Exception $e){
+            echo 'Error: ' . $e->getMessage();
+            $err = "Error in creating user ". $e->getMessage();
+            return response()->json([
+                "success" => false,
+                 "message" => $err
+            ] ,500);
+        }
 
-        // dd($request->all());
-        // dump($request->all());
-        User::create($request->all());
-        return redirect()->route('index')
-                        ->with('success','User created successfully.');
+        // response for apis 
+
+        return response()->json([
+            'success' => true,
+            'data'    => $users
+        ], 200);
+
     }
 
     // show single user 
     public function show(Request $request , User $user){
-        // dump($request->id);
-        // dd($user);
-        return view('user.show',compact('user'));
+        // return view('user.show',compact('user'));
+        return response()->json([
+            'success' => true,
+            'data'    => $user
+        ], 200);
     }
     
     // edit user
@@ -47,23 +66,52 @@ class userController extends Controller
     }
 
     public function update(Request $request ,User $user){
-        // $user = $request->user();
-        $request->validate([
-            'firstName' =>'required',
-            'lastName' =>'required',
-            'email' =>'required', 
-            'DOB' =>'required',
+        $input = $request->all();
+        // dd($request->all());
+        $validator = Validator::make($input, [
+            'firstName' => 'required',
+            'lastName' => 'required',
+            'email' => 'required',
+            'DOB'=>'required',
         ]);
-        $user->update($request->all());
-    
-        return redirect()->route('index')
-                        ->with('success','User updated successfully');
+   
+        if($validator->fails()){
+           
+            return response()->json([
+                'success' => false,
+                "message" =>  $validator->errors(),
+            ], 400);       
+        }
+        
+          
+        $user->firstName = $input['firstName'];
+        $user->lastName = $input['lastName'];
+        $user->email = $input['email'];
+        $user->DOB = $input['DOB'];
+        $user->save();
+   
+        return response()->json([
+            'success' => true,
+            "message" => "updated Successfully",
+            'data'    => $user
+        ], 200);
+
+
     }
 
     public function delete(User $user ){
         // dd($user);
-        $user->delete();
-        return redirect()->route('index')->with("success" , "User deleted successfully");
+        $res = $user->delete();
+        // return redirect()->route('index')->with("success" , "User deleted successfully");
+        return response()->json([
+            'success' => true,
+            'data'    => "Successfully deleted"
+        ], 200);
     }
+
+
+
+
+    
 
 }
