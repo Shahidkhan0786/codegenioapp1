@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Student;
+use App\Models\Classes;
 use Illuminate\Http\Request;
 use App\Models\User;
 // use Validator;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 class userController extends Controller
 {
     //
@@ -21,6 +24,7 @@ class userController extends Controller
     }
 
     public function store(Request $request){
+        $input = $request->all();
         $request->validate([
             'firstName' => 'required|min:3',
             'lastName' => 'required|min:3',
@@ -29,16 +33,47 @@ class userController extends Controller
             'password' => 'required',
             'userType' => 'required',
         ]);
+        // dd($input['userType'] == 'student');
+        DB::beginTransaction();
         try{
             $users = User::create($request->all());
+            if(!$input['userType'] == 'student'){
+                DB::commit();
+            }
         }
         catch(\Exception $e){
+            DB::rollback();
             echo 'Error: ' . $e->getMessage();
             $err = "Error in creating user ". $e->getMessage();
             return response()->json([
                 "success" => false,
                  "message" => $err
             ] ,500);
+        }
+
+        if($input['userType'] == 'student'){
+            $val=Validator::make($input,[
+                'class'=> 'required'
+            ]);
+            if($val->fails()){DB::rollback(); return response()->json(["status"=> false, "message"=>"please enter a class"],400);}
+            if(!$input['class']){ DB::rollback(); return response()->json(["status"=> false, "message"=>"please enter a class"],400);}
+            $cls_id = $input['class'];
+            $users->userType = $input['userType'];
+            $stu = new Student();
+            // $class= new Classes();
+            try{
+                $stu->user_id = $users->id;
+                $stu->class_id = $input['class'];
+                $stu->save();
+                DB::commit();
+            }
+            catch(\Exception $e){
+                DB::rollback();
+                return response()->json([
+                    'success' => false,
+                    "message" =>  "Error in saveing student",
+                ], 400);
+        }
         }
 
         // response for apis 
@@ -73,6 +108,7 @@ class userController extends Controller
             'lastName' => 'required',
             'email' => 'required',
             'DOB'=>'required',
+            
         ]);
    
         if($validator->fails()){
@@ -82,13 +118,28 @@ class userController extends Controller
                 "message" =>  $validator->errors(),
             ], 400);       
         }
+       
+        DB::beginTransaction();
+        try{
+            $user->firstName = $input['firstName'];
+            $user->lastName = $input['lastName'];
+            $user->email = $input['email'];
+            $user->DOB = $input['DOB'];
+            $user->save();
+            DB::commit();
+            // if(!$input['userType'] == 'student'){
+            // DB::commit();
+            // }
+        }
+        catch(\Exception $e){
+            DB::rollback();
+            return response()->json([
+                'success' => false,
+                "message" =>  "Error in updateing user",
+            ], 400);
+        }
+       
         
-          
-        $user->firstName = $input['firstName'];
-        $user->lastName = $input['lastName'];
-        $user->email = $input['email'];
-        $user->DOB = $input['DOB'];
-        $user->save();
    
         return response()->json([
             'success' => true,

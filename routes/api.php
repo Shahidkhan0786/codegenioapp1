@@ -6,6 +6,8 @@ use App\Http\Controllers\userController;
 use App\Http\Controllers\postController;  
 use App\Http\Controllers\authController;
 use App\Http\Controllers\commentController;
+use App\Http\Controllers\courseController;
+use App\Http\Controllers\classController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -83,3 +85,42 @@ Route::middleware("auth:sanctum")->prefix('/v1/comment')->controller(commentCont
     Route::put("/update/{pid}/{cid}" , "updateComments");
     Route::put("/del/{cid}" , "delComments");
 });
+
+
+// course routes
+ 
+Route::prefix('/v1/course')->controller(courseController::class)->group(function(){
+    Route::get('/' , 'index');
+    // listofclasses
+    Route::get('/listclasses/{id}' , 'listofclasses');
+});
+
+// course auth routes 
+
+Route::middleware("auth:sanctum")->prefix('/v1/courses')->controller(courseController::class)->group(function(){
+    Route::post('/create' , 'store');   
+    Route::put('/update/{course}' , 'updateCourse');
+    Route::delete('/del/{course}' , 'delCourse');
+});
+
+
+
+// classes routes 
+
+Route::prefix('/v1/classes')->controller(classController::class)->group(function(){
+    Route::get('/' , 'index');
+});
+
+// classes auth routes 
+
+Route::middleware("auth:sanctum")->prefix('/v1/class')->controller(classController::class)->group(function(){
+    Route::post('/create' , 'createClass');
+});
+
+// students route 
+
+Route::prefix('/v1/students')->controller(classController::class)->group(function(){
+    Route::get('/' , 'index');
+});
+
+
